@@ -1,0 +1,19 @@
+# Local reference material, internal QA, and personal report examples.
+qa/
+reference/
+tools/
+output/
+Prompt.md
+preview.html
+examples/参考周总结.md
+
+# Local environment files.
+.codex/
+.agents/
+.env
+.env.*
+node_modules/
+__pycache__/
+.DS_Store
+Thumbs.db
+*.backup-*
