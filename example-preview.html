@@ -1,0 +1,391 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word Like 文档检索工具设计说明</title><style>*,:before,:after{box-sizing:border-box}html,body{margin:0;padding:0}#write{position:relative;white-space:normal}pre{white-space:pre-wrap}</style><style id="theme-css">/*
+ * Word Like — Typora theme, 2026-10-23
+ * Word-inspired typography for everyday Chinese and English writing.
+ * No remote assets. Headings: Times New Roman / SimHei. Body: Times New Roman / SimSun.
+ * Body and list leading: 1.75 × 11pt = 19.25pt.
+ * Installation / PDF export settings: README.md
+ */
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --md-char-color: #a1a1a1;
+  --meta-content-color: #666666;
+  --primary-color: #315b85;
+  --primary-btn-border-color: #315b85;
+  --primary-btn-text-color: #ffffff;
+  --select-text-bg-color: #cddff3;
+  --active-file-bg-color: #e6e9ed;
+  --active-file-text-color: #111111;
+  --active-file-border-color: #7d8792;
+  --side-bar-bg-color: #f3f4f6;
+  --item-hover-bg-color: #e9ebee;
+  --item-hover-text-color: #111111;
+  --window-border: 1px solid #d8dce1;
+  --monospace: Consolas, "Courier New", "Microsoft YaHei", monospace;
+
+  --word-body-font: "Times New Roman", "SimSun", "宋体", serif;
+  --word-heading-font: "Times New Roman", "SimHei", "黑体", "Microsoft YaHei", sans-serif;
+  --word-h1-size: 1.6363636364rem; /* 18pt */
+  --word-h2-size: 1.4545454545rem; /* 16pt */
+  --word-h3-size: 1.2727272727rem; /* 14pt */
+  --word-h4-size: 1.0909090909rem; /* 12pt */
+  --word-h5-size: 1rem; /* 11pt */
+  --word-h6-size: 1rem; /* compatibility fallback */
+  --word-leading: 1.75; /* 19.25pt at the default 11pt body size */
+}
+
+html {
+  font-size: 11pt;
+  color-scheme: light;
+}
+
+body {
+  color: var(--text-color);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+#write {
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--word-body-font);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: var(--word-leading);
+  text-align: justify;
+  text-justify: inter-ideograph;
+  text-autospace: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+  tab-size: 4;
+  /* Isolate the paper's margins from the first/last paragraph. */
+  display: flow-root;
+}
+
+@media screen {
+  body:not(.typora-export) { background: #eceef1; }
+  body:not(.typora-export) #write {
+    width: 210mm;
+    max-width: calc(100% - 48px);
+    min-height: 297mm;
+    margin: 32px auto;
+    padding: 25.4mm 31.75mm;
+    box-shadow: 0 1px 9px rgb(0 0 0 / 12%);
+  }
+}
+
+/* Typora may prepare PDF pages using screen media. Export geometry must not
+ * depend solely on @media print, or the editor's paper/gutters cause shrinking.
+ */
+html:has(body.typora-export) {
+  font-size: 11pt !important;
+  background: #ffffff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  height: auto !important;
+}
+
+body.typora-export {
+  background: #ffffff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  height: auto !important;
+}
+
+.typora-export #write {
+  width: auto !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+#write p {
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
+  text-indent: 0;
+  orphans: 2;
+  widows: 2;
+}
+
+#write > p + p { margin-top: 0.7272727273rem; }
+
+#write.first-line-indent p { text-indent: 0; }
+#write.first-line-indent li { margin-left: 0; }
+
+#write h1,
+#write h2,
+#write h3,
+#write h4,
+#write h5,
+#write h6 {
+  color: #000000;
+  border: 0;
+  padding: 0;
+  font-weight: 700;
+  font-style: normal;
+  font-family: var(--word-heading-font);
+  line-height: 1.4;
+  margin: 1rem 0 0.35rem;
+  text-indent: 0;
+  text-align: left;
+  break-after: avoid-page;
+  page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Former H2–H6 promoted one level: 18 / 16 / 14 / 12 / 11 pt.
+ * H6 keeps the smallest style as a compatibility fallback.
+ */
+#write h1 {
+  margin: 1.2rem 0 0.45rem;
+  font-size: var(--word-h1-size);
+}
+
+#write h2 {
+  font-size: var(--word-h2-size);
+}
+
+#write h3 {
+  font-size: var(--word-h3-size);
+}
+
+#write h4 { font-size: var(--word-h4-size); }
+#write h5 { font-size: var(--word-h5-size); }
+#write h6 { font-size: var(--word-h6-size); }
+
+#write > :first-child { margin-top: 0; }
+
+/* Optional legacy metadata class now follows ordinary black body text. */
+#write .word-meta {
+  color: #000000;
+  font-family: var(--word-body-font);
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: left;
+}
+
+#write strong { color: inherit; font-weight: 700; }
+#write em { font-style: italic; }
+
+/* Word list text starts 35.85pt from the body edge; markers start at 17.85pt. */
+#write ol,
+#write ul {
+  margin: 0;
+  padding: 0 0 0 3.2590909091rem;
+  line-height: var(--word-leading);
+}
+
+#write ol { list-style-type: decimal; }
+#write li { margin: 0; padding: 0; text-indent: 0; }
+#write li > p { margin: 0; }
+#write li::marker { color: #000000; }
+#write > ol > li::marker {
+  content: counter(list-item) ".\2003";
+  font-weight: 700;
+}
+/* Ordered and unordered items share the same compact paragraph rhythm. */
+#write li + li { margin-top: 0; }
+
+/* In the reference, arrow bullets align with numbered topics, not an extra level. */
+#write > ol > li > ul {
+  margin-left: -0.0909090909rem;
+  padding-left: 0;
+}
+
+#write ul > li::marker {
+  content: "•\2002";
+  font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
+  font-size: 1em;
+  font-weight: 400;
+}
+
+/* A heading inside a list item does not pass its font size to the parent marker.
+ * Match the first heading's shared size token explicitly, preserving native lists.
+ */
+#write ul > li:has(> h1:first-child)::marker { font-size: var(--word-h1-size); }
+#write ul > li:has(> h2:first-child)::marker { font-size: var(--word-h2-size); }
+#write ul > li:has(> h3:first-child)::marker { font-size: var(--word-h3-size); }
+#write ul > li:has(> h4:first-child)::marker { font-size: var(--word-h4-size); }
+#write ul > li:has(> h5:first-child)::marker { font-size: var(--word-h5-size); }
+#write ul > li:has(> h6:first-child)::marker { font-size: var(--word-h6-size); }
+
+#write ul ul,
+#write ul ol,
+#write ol ol { padding-left: 2rem; }
+
+#write ul ul > li::marker { content: "•\2002"; }
+
+/* Task list editing controls retain their native behavior. */
+#write .task-list-item { list-style: none; position: relative; }
+#write .task-list-item::marker { content: ""; }
+#write .task-list-item > input {
+  position: absolute;
+  left: -1.6em;
+  top: 0.42em;
+  margin: 0;
+}
+
+#write blockquote {
+  margin: 0.7272727273rem 0 0.7272727273rem 2em;
+  padding: 0 0 0 1em;
+  border-left: 1px solid #999999;
+  color: #000000;
+  font-family: inherit;
+}
+
+#write a { color: #000000; text-decoration: underline; }
+#write code {
+  padding: 0.08em 0.2em;
+  border-radius: 2px;
+  background: #f3f3f3;
+  font-family: var(--monospace);
+  font-size: 0.9em;
+}
+
+#write pre,
+#write .md-fences {
+  margin: 0.7272727273rem 0;
+  padding: 0.65em 0.8em;
+  border: 1px solid #d9d9d9;
+  border-radius: 0;
+  background: #f7f7f7;
+  color: #000000;
+  font-family: var(--monospace);
+  font-size: 0.9090909091rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+#write pre code { padding: 0; background: transparent; font-size: inherit; }
+
+#write table {
+  width: 100%;
+  margin: 0.7272727273rem 0;
+  border-collapse: collapse;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+#write th,
+#write td {
+  padding: 0.3em 0.5em;
+  border: 1px solid #bfbfbf;
+  vertical-align: middle;
+}
+
+#write th { background: #f2f2f2; font-weight: 700; }
+#write figure { margin: 0.7272727273rem 0; max-width: 100%; }
+#write img { max-width: 100%; height: auto; }
+#write hr { margin: 1rem 0; border: 0; border-top: 1px solid #bfbfbf; }
+
+/* Preserve MathJax's own mathematical fonts; never force SimSun onto its glyphs. */
+#write .md-inline-math,
+#write .md-inline-math-container,
+#write .md-math-block,
+#write .mathjax-block {
+  font-size: 1rem;
+}
+
+/* Override Typora's 95% inline zoom and MathJax's container font scaling.
+ * Both inline and display math use the same 11pt base as the body.
+ * MathJax still controls script sizes, fraction layout and mathematical glyphs.
+ */
+#write mjx-container,
+#write .md-inline-math-container mjx-container {
+  font-size: 1rem !important;
+  zoom: 1 !important;
+}
+
+#write .md-math-block,
+#write .mathjax-block {
+  margin: 0.3636363636rem 0;
+  padding: 0;
+  text-align: center;
+  text-indent: 0;
+  overflow-x: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+#write mjx-container[display="true"] { margin: 0.4em 0 !important; }
+#write math { font-family: "Cambria Math", math; font-size: 1em; }
+#write .md-toc { margin: 1rem 0; font-family: inherit; font-size: 1rem; }
+#write .md-toc a { color: inherit; text-decoration: none; }
+#write .footnotes { margin-top: 1rem; font-size: 0.9090909091rem; }
+#write .md-meta-block { font-family: var(--monospace); font-size: 0.85rem; color: #000000; }
+
+/* A continuous paper on screen; real pagination is produced by PDF export. */
+@media screen and (max-width: 850px) {
+  body:not(.typora-export) #write {
+    max-width: calc(100% - 24px);
+    margin: 12px auto;
+    padding: 24px clamp(20px, 6vw, 72px);
+  }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 25.4mm 31.75mm;
+}
+
+@media print {
+  /* Physical sizes stay fixed even if the editor font-size preference is changed. */
+  html { font-size: 11pt !important; }
+  html,
+  body,
+  body.typora-export {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    height: auto !important;
+  }
+  #write {
+    display: flow-root;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    color: #000000;
+  }
+  #write a { color: inherit; }
+  #write p,
+  #write li { orphans: 2; widows: 2; }
+  /* Keep the topic line with its first bullet, but allow long items to paginate. */
+  #write > ol > li > p:first-child { break-after: avoid-page; page-break-after: avoid; }
+  #write > ol > li { break-inside: auto; page-break-inside: auto; }
+  #write thead { display: table-header-group; }
+  #write tr,
+  #write img { break-inside: avoid; page-break-inside: avoid; }
+  #write pre,
+  #write .md-fences { white-space: pre-wrap; overflow-wrap: anywhere; }
+  #write .md-math-block,
+  #write .mathjax-block { overflow: visible; }
+  #write .page-break { break-after: page; page-break-after: always; }
+  #write * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style></head><body class="word-like-preview"><div id="write"><h1>轻量级文档检索工具设计说明</h1><p>本文以一个虚构的本地文档检索工具为例，说明设计目标、处理流程和结果展示方式。工具面向个人知识库，在本地完成 Markdown 文件的读取与检索。</p><h2>设计目标 Design Goals</h2><ul><li><strong>快速定位</strong>：通过关键词找到相关文档，并显示命中段落。</li><li><strong>保留上下文</strong>：结果中包含文档标题、所在章节和原始路径。</li><li><strong>便于维护</strong>：索引与源文件分开存储，文件更新后可以重新构建。</li></ul><h2>处理流程 Workflow</h2><ol><li>读取指定目录中的 Markdown 文件，跳过临时文件和缓存目录。</li><li>按标题与段落切分内容，记录每个片段在原文中的位置。</li><li>接收查询词，返回匹配的片段，并提供打开原文的入口。</li></ol><h3>索引构建 Indexing</h3><p>每条索引记录包含 <code>title</code>、<code>section</code>、<code>path</code> 和 <code>text</code> 四个字段。展示时优先使用文档标题，缺少标题时使用文件名。</p><h4>段落切分 Paragraph Splitting</h4><p>按空行切分正文；代码块与表格作为完整片段保存，以保留阅读上下文。</p><h5>边界条件 Edge Cases</h5><p>空文档跳过索引，重复路径只保留一条记录。读取失败时记录文件路径，允许继续处理其他文件。</p><h2>示例结果 Example Results</h2><p>以下数字仅用于演示表格和公式排版。</p><table><thead><tr><th>测试集合</th><th align="right">文档数量</th><th align="right">平均查询耗时</th></tr></thead><tbody><tr><td>示例集合 A</td><td align="right">120</td><td align="right">18 ms</td></tr><tr><td>示例集合 B</td><td align="right">360</td><td align="right">26 ms</td></tr><tr><td>示例集合 C</td><td align="right">800</td><td align="right">43 ms</td></tr></tbody></table><p>设第 <span class="md-inline-math"><span class="md-inline-math-container"><mjx-container class="MathJax" jax="SVG" overflow="overflow" aria-label="i" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="0.781ex" height="1.52ex" role="img" focusable="false" viewBox="0 -661 345 672" aria-hidden="true" style="vertical-align: -0.025ex;"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math" data-latex="i"><g data-mml-node="mi" data-latex="i"><path data-c="1D456" d="M284 621C284 648 271 661 244 661C216 661 188 633 188 605C188 578 202 565 229 565C257 565 284 593 284 621M259 138C237 59 205 19 164 19C151 19 144 28 144 47C144 64 173 150 232 306C240 329 244 347 244 360C244 409 210 445 161 445C118 445 84 420 59 369C39 328 29 301 29 288C29 279 34 275 45 275C58 275 60 281 64 295C87 375 118 415 158 415C171 415 178 406 178 387C178 373 175 357 168 338C145 275 121 208 101 155C86 115 78 88 78 74C78 25 114-11 162-11C205-11 239 14 264 64C283 103 293 130 293 145C293 154 288 159 277 159C274 159 259 150 259 138Z"></path></g></g></g></svg></mjx-container></span></span> 次查询耗时为 <span class="md-inline-math"><span class="md-inline-math-container"><mjx-container class="MathJax" jax="SVG" overflow="overflow" aria-label="t_i" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.556ex" height="1.773ex" role="img" focusable="false" viewBox="0 -626 688 783.8" aria-hidden="true" style="vertical-align: -0.357ex;"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math" data-latex="t_i"><g data-mml-node="msub" data-latex="t_i"><g data-mml-node="mi" data-latex="t"><path data-c="1D461" d="M330 419C330 428 320 433 299 433L218 433C244 537 257 591 257 595C257 616 246 626 225 626C202 626 188 613 182 587L145 433L56 433C34 433 23 432 23 411C23 400 33 395 54 395L135 395C86 200 62 97 62 84C62 28 100-11 156-11C194-11 227 6 256 41C280 70 297 98 308 125C312 136 314 142 314 145C314 154 309 159 299 159C291 159 285 154 281 143C247 60 206 19 157 19C140 19 131 33 131 60C131 75 133 91 137 107L208 395L297 395C323 395 330 397 330 419Z"></path></g><g data-mml-node="mi" transform="translate(394,-150) scale(0.707)" data-latex="i"><path data-c="1D456" d="M284 621C284 648 271 661 244 661C216 661 188 633 188 605C188 578 202 565 229 565C257 565 284 593 284 621M259 138C237 59 205 19 164 19C151 19 144 28 144 47C144 64 173 150 232 306C240 329 244 347 244 360C244 409 210 445 161 445C118 445 84 420 59 369C39 328 29 301 29 288C29 279 34 275 45 275C58 275 60 281 64 295C87 375 118 415 158 415C171 415 178 406 178 387C178 373 175 357 168 338C145 275 121 208 101 155C86 115 78 88 78 74C78 25 114-11 162-11C205-11 239 14 264 64C283 103 293 130 293 145C293 154 288 159 277 159C274 159 259 150 259 138Z"></path></g></g></g></g></svg></mjx-container></span></span>，共执行 <span class="md-inline-math"><span class="md-inline-math-container"><mjx-container class="MathJax" jax="SVG" overflow="overflow" aria-label="N" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.993ex" height="1.545ex" role="img" focusable="false" viewBox="0 -683 881 683" aria-hidden="true" style="vertical-align: 0px;"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math" data-latex="N"><g data-mml-node="mi" data-latex="N"><path data-c="1D441" d="M864 683C845 683 783 680 764 680C745 680 682 683 663 683C648 683 641 675 641 659C641 650 648 645 663 644C705 644 726 631 726 605C726 599 725 592 724 585L616 157L401 662C393 681 391 683 366 683L233 683C209 683 200 681 200 659C200 649 211 644 232 644C274 644 295 643 296 640L163 110C154 71 131 49 95 42C69 39 39 43 39 15C39 5 45 0 56 0C74 0 136 3 155 3C174 3 238 0 257 0C272 0 279 8 279 24C279 33 271 38 255 39C214 40 194 53 194 78C194 83 195 90 197 100L326 611L576 21C582 7 590 0 599 0C608 0 614 8 618 24L757 574C770 625 798 643 860 644C874 645 881 653 881 669C878 678 877 683 864 683Z"></path></g></g></g></svg></mjx-container></span></span> 次查询，平均耗时记为 <span class="md-inline-math"><span class="md-inline-math-container"><mjx-container class="MathJax" jax="SVG" overflow="overflow" aria-label="\bar{t}" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="0.817ex" height="1.975ex" role="img" focusable="false" viewBox="0 -862 361 873" aria-hidden="true" style="vertical-align: -0.025ex;"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math" data-latex="\bar{t}"><g data-mml-node="TeXAtom" data-latex="\bar{t}" data-mjx-texclass="ORD"><g data-mml-node="mover"><g data-mml-node="mi" data-latex="t"><path data-c="1D461" d="M330 419C330 428 320 433 299 433L218 433C244 537 257 591 257 595C257 616 246 626 225 626C202 626 188 613 182 587L145 433L56 433C34 433 23 432 23 411C23 400 33 395 54 395L135 395C86 200 62 97 62 84C62 28 100-11 156-11C194-11 227 6 256 41C280 70 297 98 308 125C312 136 314 142 314 145C314 154 309 159 299 159C291 159 285 154 281 143C247 60 206 19 157 19C140 19 131 33 131 60C131 75 133 91 137 107L208 395L297 395C323 395 330 397 330 419Z"></path></g><g data-mml-node="mo" transform="translate(224.5,142) translate(-250 0)"><path data-c="AF" d="M70 589L431 589L431 620L70 620Z"></path></g></g></g></g></g></svg></mjx-container></span></span>：</p><div class="md-math-block"><mjx-container class="MathJax" jax="SVG" overflow="overflow" display="true" aria-label="\bar{t}=\frac{1}{N}\sum_{i=1}^{N}t_i" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="12.4ex" height="6.626ex" role="img" focusable="false" viewBox="0 -1733 5480.8 2928.7" aria-hidden="true" style="vertical-align: -2.705ex;"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math" data-latex="\bar{t}=\frac{1}{N}\sum_{i=1}^{N}t_i"><g data-mml-node="TeXAtom" data-latex="\bar{t}" data-mjx-texclass="ORD"><g data-mml-node="mover"><g data-mml-node="mi" data-latex="t"><path data-c="1D461" d="M330 419C330 428 320 433 299 433L218 433C244 537 257 591 257 595C257 616 246 626 225 626C202 626 188 613 182 587L145 433L56 433C34 433 23 432 23 411C23 400 33 395 54 395L135 395C86 200 62 97 62 84C62 28 100-11 156-11C194-11 227 6 256 41C280 70 297 98 308 125C312 136 314 142 314 145C314 154 309 159 299 159C291 159 285 154 281 143C247 60 206 19 157 19C140 19 131 33 131 60C131 75 133 91 137 107L208 395L297 395C323 395 330 397 330 419Z"></path></g><g data-mml-node="mo" transform="translate(224.5,142) translate(-250 0)"><path data-c="AF" d="M70 589L431 589L431 620L70 620Z"></path></g></g></g><g data-mml-node="mo" data-latex="=" transform="translate(638.8,0)"><path data-c="3D" d="M698 367L80 367C64 367 56 359 56 344C56 329 64 321 80 321L698 321C714 321 722 329 722 344C722 356 711 367 698 367M698 179L80 179C64 179 56 171 56 156C56 141 64 133 80 133L698 133C714 133 722 141 722 156C722 169 711 179 698 179Z"></path></g><g data-mml-node="mfrac" data-latex="\frac{1}{N}" transform="translate(1694.6,0)"><g data-mml-node="mn" data-latex="1" transform="translate(410.5,676)"><path data-c="31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"></path></g><g data-mml-node="mi" data-latex="N" transform="translate(220,-686)"><path data-c="1D441" d="M864 683C845 683 783 680 764 680C745 680 682 683 663 683C648 683 641 675 641 659C641 650 648 645 663 644C705 644 726 631 726 605C726 599 725 592 724 585L616 157L401 662C393 681 391 683 366 683L233 683C209 683 200 681 200 659C200 649 211 644 232 644C274 644 295 643 296 640L163 110C154 71 131 49 95 42C69 39 39 43 39 15C39 5 45 0 56 0C74 0 136 3 155 3C174 3 238 0 257 0C272 0 279 8 279 24C279 33 271 38 255 39C214 40 194 53 194 78C194 83 195 90 197 100L326 611L576 21C582 7 590 0 599 0C608 0 614 8 618 24L757 574C770 625 798 643 860 644C874 645 881 653 881 669C878 678 877 683 864 683Z"></path></g><rect width="1081" height="60" x="120" y="220"></rect></g><g data-mml-node="munderover" data-latex="\sum_{i=1}^{N}" transform="translate(3182.2,0)"><g data-mml-node="mo" data-latex="\sum"><path data-c="2211" d="M1265-450L1389-124L1355-124C1336-174 1304-216 1258-250C1145-334 1000-356 791-356L200-356L700 232C707 239 710 246 710 251L244 894L781 894C970 894 1127 870 1230 804C1290 766 1332 719 1356 663L1389 663L1265 950L88 950C70 950 60 947 57 941C56 938 56 926 56 905L581 187L68-415C61-423 57-430 57-435C57-445 67-450 88-450Z"></path></g><g data-mml-node="TeXAtom" transform="translate(148.2,-1087.9) scale(0.707)" data-latex="{i=1}" data-mjx-texclass="ORD"><g data-mml-node="mi" data-latex="i"><path data-c="1D456" d="M284 621C284 648 271 661 244 661C216 661 188 633 188 605C188 578 202 565 229 565C257 565 284 593 284 621M259 138C237 59 205 19 164 19C151 19 144 28 144 47C144 64 173 150 232 306C240 329 244 347 244 360C244 409 210 445 161 445C118 445 84 420 59 369C39 328 29 301 29 288C29 279 34 275 45 275C58 275 60 281 64 295C87 375 118 415 158 415C171 415 178 406 178 387C178 373 175 357 168 338C145 275 121 208 101 155C86 115 78 88 78 74C78 25 114-11 162-11C205-11 239 14 264 64C283 103 293 130 293 145C293 154 288 159 277 159C274 159 259 150 259 138Z"></path></g><g data-mml-node="mo" data-latex="=" transform="translate(345,0)"><path data-c="3D" d="M698 367L80 367C64 367 56 359 56 344C56 329 64 321 80 321L698 321C714 321 722 329 722 344C722 356 711 367 698 367M698 179L80 179C64 179 56 171 56 156C56 141 64 133 80 133L698 133C714 133 722 141 722 156C722 169 711 179 698 179Z"></path></g><g data-mml-node="mn" data-latex="1" transform="translate(1123,0)"><path data-c="31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"></path></g></g><g data-mml-node="TeXAtom" transform="translate(410.5,1150) scale(0.707)" data-latex="{N}" data-mjx-texclass="ORD"><g data-mml-node="mi" data-latex="N"><path data-c="1D441" d="M864 683C845 683 783 680 764 680C745 680 682 683 663 683C648 683 641 675 641 659C641 650 648 645 663 644C705 644 726 631 726 605C726 599 725 592 724 585L616 157L401 662C393 681 391 683 366 683L233 683C209 683 200 681 200 659C200 649 211 644 232 644C274 644 295 643 296 640L163 110C154 71 131 49 95 42C69 39 39 43 39 15C39 5 45 0 56 0C74 0 136 3 155 3C174 3 238 0 257 0C272 0 279 8 279 24C279 33 271 38 255 39C214 40 194 53 194 78C194 83 195 90 197 100L326 611L576 21C582 7 590 0 599 0C608 0 614 8 618 24L757 574C770 625 798 643 860 644C874 645 881 653 881 669C878 678 877 683 864 683Z"></path></g></g></g><g data-mml-node="msub" data-latex="t_i" transform="translate(4792.9,0)"><g data-mml-node="mi" data-latex="t"><path data-c="1D461" d="M330 419C330 428 320 433 299 433L218 433C244 537 257 591 257 595C257 616 246 626 225 626C202 626 188 613 182 587L145 433L56 433C34 433 23 432 23 411C23 400 33 395 54 395L135 395C86 200 62 97 62 84C62 28 100-11 156-11C194-11 227 6 256 41C280 70 297 98 308 125C312 136 314 142 314 145C314 154 309 159 299 159C291 159 285 154 281 143C247 60 206 19 157 19C140 19 131 33 131 60C131 75 133 91 137 107L208 395L297 395C323 395 330 397 330 419Z"></path></g><g data-mml-node="mi" transform="translate(394,-150) scale(0.707)" data-latex="i"><path data-c="1D456" d="M284 621C284 648 271 661 244 661C216 661 188 633 188 605C188 578 202 565 229 565C257 565 284 593 284 621M259 138C237 59 205 19 164 19C151 19 144 28 144 47C144 64 173 150 232 306C240 329 244 347 244 360C244 409 210 445 161 445C118 445 84 420 59 369C39 328 29 301 29 288C29 279 34 275 45 275C58 275 60 281 64 295C87 375 118 415 158 415C171 415 178 406 178 387C178 373 175 357 168 338C145 275 121 208 101 155C86 115 78 88 78 74C78 25 114-11 162-11C205-11 239 14 264 64C283 103 293 130 293 145C293 154 288 159 277 159C274 159 259 150 259 138Z"></path></g></g></g></g></svg></mjx-container></div><h2>数据记录 Data Records</h2><p>下面是一条简化的索引记录：</p><pre><code class="language-json">{
+  &quot;title&quot;: &quot;接口设计说明&quot;,
+  &quot;section&quot;: &quot;参数与返回值&quot;,
+  &quot;path&quot;: &quot;notes/interface.md&quot;,
+  &quot;text&quot;: &quot;查询结果包含标题、片段与文档路径。&quot;
+}</code></pre><blockquote><p>检索结果用于定位内容，完整语境应以源文档为准。</p></blockquote></div></body></html>

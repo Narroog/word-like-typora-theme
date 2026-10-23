@@ -5,7 +5,7 @@ tools/
 output/
 Prompt.md
 preview.html
-examples/参考周总结.md
+examples/参考*.md
 
 # Local environment files.
 .codex/
