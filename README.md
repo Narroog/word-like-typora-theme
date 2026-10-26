@@ -69,6 +69,7 @@ Windows 默认主题目录为 `%APPDATA%\Typora\themes`。也可以下载本仓�
 
 - [`examples/最小二乘直线拟合理论推导.md`](examples/最小二乘直线拟合理论推导.md)：文字与公式较多的简易理论推导，包含正规方程、中心化解、矩阵形式、手算例子和正则化扩展。
 - [`examples/least-squares-paper-en.md`](examples/least-squares-paper-en.md)：英文论文式示例，包含摘要、引言、最小二乘与正则化推导、数值验证、讨论和参考文献；使用明确给出的演示数据。
+- PDF 下载：[中文理论推导](examples/最小二乘直线拟合理论推导.pdf)、[英文论文示例](examples/least-squares-paper-en.pdf)，均采用本主题的 A4 排版。
 - [`examples/标题与列表.md`](examples/标题与列表.md)：标题层级、正文、有序及无序列表示例。
 - [`example-preview.html`](example-preview.html)：理论推导示例的离线 HTML 预览。
 - [`english-paper-preview.html`](english-paper-preview.html)：英文论文示例的离线 HTML 预览；也可查看[英文预览截图](assets/preview-en.png)。
