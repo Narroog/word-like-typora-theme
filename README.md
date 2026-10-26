@@ -1,4 +1,4 @@
-# Word Like Typora Theme
+# Word-like Typora Theme
 
 一个类似于word的，适合中文技术文档的浅色 Typora 主题。编辑界面呈现白纸与灰色桌面，PDF 使用 A4 页面；标题、正文、公式及列表采用统一的黑色排版。
 
